@@ -1,3 +1,13 @@
+## DICOM interfaces for image analysis and annotations
+
+This is a development fork of [highdicom](https://github.com/ImagingDataCommons/highdicom), a Python library built on pydicom for computational imaging workflows. Upstream helps select image frames, interpret spatial arrangements, and read or create derived DICOM objects such as segmentations, parametric maps, and structured reports—useful for exchanging analysis outputs and annotations in standard formats.
+
+**Contribution to review:** [PR #471](https://github.com/ImagingDataCommons/highdicom/pull/471) proposes validating undefined pixel-fragment lengths before reads.
+
+The [official documentation](https://highdicom.readthedocs.io) includes installation, user examples, and an API reference. The original overview and scientific citation remain below. Consult the [branch comparison](https://github.com/ImagingDataCommons/highdicom/compare/master...jdotc1:master) to inspect this fork's default branch alongside upstream.
+
+---
+
 [![Build Status](https://github.com/imagingdatacommons/highdicom/actions/workflows/run_unit_tests.yml/badge.svg)](https://github.com/imagingdatacommons/highdicom/actions)
 [![Documentation Status](https://readthedocs.org/projects/highdicom/badge/?version=latest)](https://highdicom.readthedocs.io/en/latest/?badge=latest)
 [![PyPi Distribution](https://img.shields.io/pypi/v/highdicom.svg)](https://pypi.python.org/pypi/highdicom/)
