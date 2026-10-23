@@ -1132,6 +1132,94 @@ def test_pad_per_channel_preserves_dtype(dtype):
     assert np.array_equal(padded.array, expected)
 
 
+@pytest.mark.parametrize('volume_type', [Volume, VolumeGeometry])
+@pytest.mark.parametrize(
+    'pad_width',
+    [
+        -1,
+        [-1, 0],
+        [0, -1],
+        [[-1], [0], [0]],
+        [[0], [-1], [0]],
+        [[0], [0], [-1]],
+        [[-1, 0], [0, 0], [0, 0]],
+        [[0, -1], [0, 0], [0, 0]],
+        [[0, 0], [-1, 0], [0, 0]],
+        [[0, 0], [0, -1], [0, 0]],
+        [[0, 0], [0, 0], [-1, 0]],
+        [[0, 0], [0, 0], [0, -1]],
+    ],
+)
+def test_pad_rejects_negative_widths(volume_type, pad_width):
+    kwargs = {'affine': np.eye(4), 'coordinate_system': "PATIENT"}
+    if volume_type is Volume:
+        kwargs['array'] = np.zeros((3, 4, 5))
+    else:
+        kwargs['spatial_shape'] = (3, 4, 5)
+    volume = volume_type(**kwargs)
+
+    with pytest.raises(ValueError, match='negative'):
+        volume.pad(pad_width)
+
+
+@pytest.mark.parametrize('volume_type', [Volume, VolumeGeometry])
+@pytest.mark.parametrize(
+    'pad_width,expected_shape,expected_position',
+    [
+        (0, (3, 4, 5), (0, 0, 0)),
+        (2, (7, 8, 9), (-2, -2, -2)),
+        ([0, 0], (3, 4, 5), (0, 0, 0)),
+        ([1, 2], (6, 7, 8), (-1, -1, -1)),
+        ([[0], [0], [0]], (3, 4, 5), (0, 0, 0)),
+        ([[1], [2], [3]], (5, 8, 11), (-1, -2, -3)),
+        ([[0, 0], [0, 0], [0, 0]], (3, 4, 5), (0, 0, 0)),
+        ([[0, 1], [2, 0], [1, 2]], (4, 6, 8), (0, -2, -1)),
+        (((1,), (2,), (3,)), (5, 8, 11), (-1, -2, -3)),
+        (
+            ((np.int64(1), np.int64(0)), (0, 0), (0, 0)),
+            (4, 4, 5),
+            (-1, 0, 0),
+        ),
+    ],
+)
+def test_pad_supported_width_forms(
+    volume_type, pad_width, expected_shape, expected_position
+):
+    kwargs = {'affine': np.eye(4), 'coordinate_system': "PATIENT"}
+    if volume_type is Volume:
+        kwargs['array'] = np.ones((3, 4, 5), dtype=np.uint16)
+    else:
+        kwargs['spatial_shape'] = (3, 4, 5)
+    volume = volume_type(**kwargs)
+
+    padded = volume.pad(pad_width)
+
+    assert padded.spatial_shape == expected_shape
+    assert padded.position == expected_position
+    assert volume.spatial_shape == (3, 4, 5)
+    assert volume.position == (0, 0, 0)
+    if volume_type is Volume:
+        assert padded.array.dtype == np.uint16
+        assert padded.array.sum() == 60
+
+
+@pytest.mark.parametrize('volume_type', [Volume, VolumeGeometry])
+@pytest.mark.parametrize(
+    'pad_width',
+    [[], [[], [], []], [[0], [], [0]], [[0, 0], [], [0, 0]]],
+)
+def test_pad_rejects_empty_widths(volume_type, pad_width):
+    kwargs = {'affine': np.eye(4), 'coordinate_system': "PATIENT"}
+    if volume_type is Volume:
+        kwargs['array'] = np.zeros((3, 4, 5))
+    else:
+        kwargs['spatial_shape'] = (3, 4, 5)
+    volume = volume_type(**kwargs)
+
+    with pytest.raises(ValueError):
+        volume.pad(pad_width)
+
+
 def test_pad_to_spatial_shape():
     vol, _ = read_multiframe_ct_volume()
 

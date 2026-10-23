@@ -1052,19 +1052,13 @@ class _VolumeBase(ABC):
 
         """
         if isinstance(pad_width, int):
-            if pad_width < 0:
-                raise ValueError(
-                    "Argument 'pad_width' cannot contain negative values."
-                )
             full_pad_width: list[list[int]] = [[pad_width, pad_width]] * 3
         elif isinstance(pad_width, Sequence):
+            if len(pad_width) == 0:
+                raise ValueError("Invalid arrangement in 'pad_width'.")
             if isinstance(pad_width[0], int):
                 if len(pad_width) != 2:
                     raise ValueError("Invalid arrangement in 'pad_width'.")
-                if pad_width[0] < 0 or pad_width[1] < 0:
-                    raise ValueError(
-                        "Argument 'pad_width' cannot contain negative values."
-                    )
                 full_pad_width = [list(pad_width)] * 3
             elif isinstance(pad_width[0], Sequence):
                 if len(pad_width) != 3:
@@ -1081,6 +1075,11 @@ class _VolumeBase(ABC):
                     raise ValueError("Invalid arrangement in 'pad_width'.")
         else:
             raise TypeError("Invalid format for 'pad_width'.")
+
+        if any(w < 0 for axis_pad in full_pad_width for w in axis_pad):
+            raise ValueError(
+                "Argument 'pad_width' cannot contain negative values."
+            )
 
         origin_offset = [-p[0] for p in full_pad_width]
         new_affine = _translate_affine_matrix(self.affine, origin_offset)
