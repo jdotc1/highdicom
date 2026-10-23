@@ -4345,10 +4345,10 @@ class VolumeToVolumeTransformer:
             if not input_is_int:
                 output_indices = output_indices.astype(indices.dtype)
 
-        if self._check_bounds:
+        if self._check_bounds and len(output_indices) > 0:
             bounds_fail = False
-            min_indices = np.min(output_indices, axis=1)
-            max_indices = np.max(output_indices, axis=1)
+            min_indices = np.min(output_indices, axis=0)
+            max_indices = np.max(output_indices, axis=0)
 
             for shape, min_ind, max_ind in zip(
                 self._output_shape,

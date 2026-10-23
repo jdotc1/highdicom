@@ -846,6 +846,97 @@ def test_volume_transformer():
             assert np.array_equal(outputs, expected)
 
 
+@pytest.mark.parametrize('round_output', [False, True])
+@pytest.mark.parametrize(
+    'dtype,unrounded_dtype,rounded_dtype',
+    [
+        (np.int16, np.float64, np.int16),
+        (np.int64, np.float64, np.int64),
+        (np.float32, np.float32, np.int64),
+        (np.float64, np.float64, np.int64),
+    ],
+)
+@pytest.mark.parametrize(
+    'indices',
+    [np.array([[5, 15, 25]]), np.empty((0, 3))],
+    ids=['non_cubic', 'empty'],
+)
+def test_volume_transformer_bounds_valid_indices(
+    indices, dtype, unrounded_dtype, rounded_dtype, round_output
+):
+    geometry = VolumeGeometry(
+        np.eye(4), [10, 20, 30], coordinate_system="PATIENT"
+    )
+    transformer = VolumeToVolumeTransformer(
+        geometry, geometry, round_output=round_output, check_bounds=True
+    )
+    indices = indices.astype(dtype)
+
+    output = transformer(indices)
+
+    assert np.array_equal(output, indices)
+    assert output.shape == indices.shape
+    expected_dtype = rounded_dtype if round_output else unrounded_dtype
+    assert output.dtype == expected_dtype
+
+
+@pytest.mark.parametrize('round_output', [False, True])
+@pytest.mark.parametrize('axis', [0, 1, 2])
+@pytest.mark.parametrize('side', ['lower', 'upper'])
+@pytest.mark.parametrize('row', [0, 3])
+def test_volume_transformer_bounds_each_coordinate(
+    round_output, axis, side, row
+):
+    shape = (10, 20, 30)
+    geometry = VolumeGeometry(
+        np.eye(4), shape, coordinate_system="PATIENT"
+    )
+    transformer = VolumeToVolumeTransformer(
+        geometry, geometry, round_output=round_output, check_bounds=True
+    )
+    indices = np.zeros((4, 3))
+    indices[row, axis] = -0.5001 if side == 'lower' else shape[axis] - 0.4999
+
+    with pytest.raises(ValueError, match='Bounds check failed'):
+        transformer(indices)
+
+
+@pytest.mark.parametrize(
+    'indices,round_output,expected',
+    [
+        ([-0.5, -0.5, -0.5], False, [-0.5, -0.5, -0.5]),
+        ([-0.5, -0.5, -0.5], True, [0, 0, 0]),
+        ([9.5, 19.5, 29.5], False, [9.5, 19.5, 29.5]),
+        ([9.49, 19.49, 29.49], True, [9, 19, 29]),
+    ],
+)
+def test_volume_transformer_bounds_half_voxel_limits(
+    indices, round_output, expected
+):
+    geometry = VolumeGeometry(
+        np.eye(4), [10, 20, 30], coordinate_system="PATIENT"
+    )
+    transformer = VolumeToVolumeTransformer(
+        geometry, geometry, round_output=round_output, check_bounds=True
+    )
+
+    output = transformer(np.array([indices]))
+
+    assert np.array_equal(output, [expected])
+
+
+def test_volume_transformer_bounds_checked_after_rounding():
+    geometry = VolumeGeometry(
+        np.eye(4), [10, 20, 30], coordinate_system="PATIENT"
+    )
+    transformer = VolumeToVolumeTransformer(
+        geometry, geometry, round_output=True, check_bounds=True
+    )
+
+    with pytest.raises(ValueError, match='Bounds check failed'):
+        transformer(np.array([[9.5, 0.0, 0.0]]))
+
+
 @pytest.mark.parametrize(
     'crop,pad,permute,reversible',
     [
